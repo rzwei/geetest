@@ -108,9 +108,7 @@ class crack_picture(object):
         ret = []
 
         cur = 0
-
         mov = int((distance - cur)) / 10
-
         while cur < distance:
             ret.append([mov, random.randint(-1, 1), random.randint(2, 4) / 100])
 
@@ -197,12 +195,12 @@ class gsxt(object):
         return ans
 
     def run(self):
-        for i in ['招商银行', '交通银行', '中国银行']:
+        for i in ['小米', '腾讯', '百度']:
             self.hack_geetest(i)
             time.sleep(1)
         self.quit_webdriver()
 
-    def hack_geetest(self, company="招商银行"):
+    def hack_geetest(self, company="小米"):
         flag = True
         self.input_params(company)
         while flag:
