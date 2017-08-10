@@ -1,32 +1,31 @@
-#-*-coding:utf-8-*-
-import requests
-import re
-import StringIO
-from PIL import Image
+# -*-coding:utf-8-*-
 import random
-import math
+import re
 import time
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium import webdriver
+from functools import reduce
+from io import BytesIO
+
+import requests
+from PIL import Image
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 class crack_picture(object):
     def __init__(self, img_url1, img_url2):
         self.img1, self.img2 = self.picture_get(img_url1, img_url2)
 
-
     def picture_get(self, img_url1, img_url2):
         hd = {"Host": "static.geetest.com",
               "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"}
-        img1 = StringIO.StringIO(self.repeat(img_url1, hd).content)
-        img2 = StringIO.StringIO(self.repeat(img_url2, hd).content)
+        img1 = BytesIO(self.repeat(img_url1, hd).content)
+        img2 = BytesIO(self.repeat(img_url2, hd).content)
         return img1, img2
-
 
     def repeat(self, url, hd):
         times = 10
@@ -35,22 +34,21 @@ class crack_picture(object):
                 ans = requests.get(url, headers=hd)
                 return ans
             except:
-                times -= 1   
-
+                times -= 1
 
     def pictures_recover(self):
         xpos = self.judge(self.picture_recover(self.img1, 'img1.jpg'), self.picture_recover(self.img2, 'img2.jpg')) - 6
         return self.darbra_track(xpos)
 
-
     def picture_recover(self, img, name):
-        a =[39, 38, 48, 49, 41, 40, 46, 47, 35, 34, 50, 51, 33, 32, 28, 29, 27, 26, 36, 37, 31, 30, 44, 45, 43, 42, 12, 13, 23, 22, 14, 15, 21, 20, 8, 9, 25, 24, 6, 7, 3, 2, 0, 1, 11, 10, 4, 5, 19, 18, 16, 17]
+        a = [39, 38, 48, 49, 41, 40, 46, 47, 35, 34, 50, 51, 33, 32, 28, 29, 27, 26, 36, 37, 31, 30, 44, 45, 43, 42, 12,
+             13, 23, 22, 14, 15, 21, 20, 8, 9, 25, 24, 6, 7, 3, 2, 0, 1, 11, 10, 4, 5, 19, 18, 16, 17]
         im = Image.open(img)
         im_new = Image.new("RGB", (260, 116))
         for row in range(2):
             for column in range(26):
-                right = a[row*26+column] % 26 * 12 + 1
-                down = 58 if a[row*26+column] > 25 else 0
+                right = a[row * 26 + column] % 26 * 12 + 1
+                down = 58 if a[row * 26 + column] > 25 else 0
                 for w in range(10):
                     for h in range(58):
                         ht = 58 * row + h
@@ -59,25 +57,87 @@ class crack_picture(object):
         im_new.save(name)
         return im_new
 
+    def get_offsets(self, offset, setpointX):
+        '''
+        切记不能移动小数个像素位置
+        '''
+        kp = 3.0
+        ki = 0.0001
+        kd = 80.0
+        x = 0
+        vx = 0
+        prevErrorX = 0
+        integralX = 0
+        derivativeX = 0
+        while 1:
+            if x >= setpointX:
+                break
+            errorX = setpointX - x
+            # print('xxxxx - ', x)
+            integralX += errorX
+            derivativeX = errorX - prevErrorX
+            prevErrorX = errorX
+            if offset < 100:
+                K = 0.007
+            elif offset < 180:
+                K = 0.006
+            else:
+                K = 0.005
+            ax = K * (kp * errorX + ki * integralX + kd * derivativeX)
+            vx += ax
+            if x + vx > setpointX:
+                vx = setpointX - x
+            vx = int(vx)
+            if vx < 1:
+                vx = random.randint(1, 3)
+            yield vx
+            print('vvvvv - ', vx)
+            x += vx
 
     def darbra_track(self, distance):
-        return [[distance, 0.5, 1]]
-        #crucial trace code was deleted
 
+        ret = []
+
+        for i in self.get_offsets(distance, distance):
+            ret.append([i, random.randint(-1, 1), random.randint(2, 5) / 100])
+
+        return ret
+
+    def darbra_track_(self, distance):
+
+        ret = []
+
+        cur = 0
+
+        mov = int((distance - cur)) / 10
+
+        while cur < distance:
+            ret.append([mov, random.randint(-1, 1), random.randint(2, 4) / 100])
+
+            offset = distance - cur
+
+            mov += random.randint(0, 10) - 2
+
+            # mov = mov + random.randint(0, 9) - 2
+            cur += mov
+
+            # ret.append([distance, 0.5, 1])
+
+        return ret
+        # return [[distance, 0.5, 1]]
+        # crucial trace code was deleted
 
     def diff(self, img1, img2, wd, ht):
         rgb1 = img1.getpixel((wd, ht))
         rgb2 = img2.getpixel((wd, ht))
-        tmp = reduce(lambda x,y: x+y, map(lambda x: abs(x[0]-x[1]), zip(rgb1, rgb2)))
+        tmp = reduce(lambda x, y: x + y, map(lambda x: abs(x[0] - x[1]), zip(rgb1, rgb2)))
         return True if tmp >= 200 else False
 
-            
     def col(self, img1, img2, cl):
         for i in range(img2.size[1]):
             if self.diff(img1, img2, cl, i):
                 return True
         return False
-
 
     def judge(self, img1, img2):
         for i in range(img2.size[0]):
@@ -93,7 +153,6 @@ class gsxt(object):
         self.br.set_page_load_timeout(8)
         self.br.set_script_timeout(8)
 
-
     def input_params(self, name):
         self.br.get("http://www.gsxt.gov.cn/index")
         element = self.wait_for(By.ID, "keyword")
@@ -103,15 +162,12 @@ class gsxt(object):
         element.click()
         time.sleep(1.1)
 
-
     def drag_pic(self):
         return (self.find_img_url(self.wait_for(By.CLASS_NAME, "gt_cut_fullbg_slice")),
-               self.find_img_url(self.wait_for(By.CLASS_NAME, "gt_cut_bg_slice")))
-        
-    
+                self.find_img_url(self.wait_for(By.CLASS_NAME, "gt_cut_bg_slice")))
+
     def wait_for(self, by1, by2):
         return self.wait.until(EC.presence_of_element_located((by1, by2)))
-
 
     def find_img_url(self, element):
         try:
@@ -119,35 +175,34 @@ class gsxt(object):
         except:
             return re.findall('url\((.*?)\)', element.get_attribute('style'))[0].replace("webp", "jpg")
 
-
     def emulate_track(self, tracks):
         element = self.br.find_element_by_class_name("gt_slider_knob")
         ActionChains(self.br).click_and_hold(on_element=element).perform()
+        # time.sleep(random.randint(1, 20) / 10)
+        time.sleep(random.randint(5, 8) / 10)
         for x, y, t in tracks:
-            print x, y ,t 
+            print(x, y, t)
             ActionChains(self.br).move_to_element_with_offset(
-                        to_element=element, 
-                        xoffset=x+22,
-                        yoffset=y+22).perform()
+                to_element=element,
+                xoffset=x + 22,
+                yoffset=y + 22).perform()
             ActionChains(self.br).click_and_hold().perform()
             time.sleep(t)
         time.sleep(0.24)
         ActionChains(self.br).release(on_element=element).perform()
         time.sleep(0.8)
         element = self.wait_for(By.CLASS_NAME, "gt_info_text")
-        ans = element.text.encode("utf-8")
-        print ans
+        ans = element.text
+        print(ans)
         return ans
 
-
     def run(self):
-        for i in [u'招商银行', u'交通银行', u'中国银行']:
-        	self.hack_geetest(i)
-        	time.sleep(1)
+        for i in ['招商银行', '交通银行', '中国银行']:
+            self.hack_geetest(i)
+            time.sleep(1)
         self.quit_webdriver()
 
-
-    def hack_geetest(self, company=u"招商银行"):
+    def hack_geetest(self, company="招商银行"):
         flag = True
         self.input_params(company)
         while flag:
@@ -157,25 +212,23 @@ class gsxt(object):
             if '通过' in tsb:
                 time.sleep(1)
                 soup = BeautifulSoup(self.br.page_source, 'html.parser')
-                for sp in soup.find_all("a", attrs={"class":"search_list_item"}):
-                    print re.sub("\s+", "", sp.get_text().encode("utf-8"))
-                    #print sp.get_text()
+                for sp in soup.find_all("a", attrs={"class": "search_list_item"}):
+                    print(re.sub("\s+", "", sp.get_text()))
+                    # print sp.get_text()
                 break
             elif '吃' in tsb:
                 time.sleep(5)
             else:
                 self.input_params(company)
-                              
 
     def quit_webdriver(self):
         self.br.quit()
-
 
     def get_webdriver(self, name):
         if name.lower() == "phantomjs":
             dcap = dict(DesiredCapabilities.PHANTOMJS)
             dcap["phantomjs.page.settings.userAgent"] = (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36")
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36")
             return webdriver.PhantomJS(desired_capabilities=dcap)
 
         elif name.lower() == "chrome":
@@ -183,8 +236,5 @@ class gsxt(object):
 
 
 if __name__ == "__main__":
-    #print crack_picture("http://static.geetest.com/pictures/gt/fc064fc73/fc064fc73.jpg", "http://static.geetest.com/pictures/gt/fc064fc73/bg/7ca363b09.jpg").pictures_recover()
+    # print crack_picture("http://static.geetest.com/pictures/gt/fc064fc73/fc064fc73.jpg", "http://static.geetest.com/pictures/gt/fc064fc73/bg/7ca363b09.jpg").pictures_recover()
     gsxt("chrome").run()
-
-
-
